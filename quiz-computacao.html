@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quiz de Computação, Programação e Lógica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fundo: #f6f8fb;
+    --grade: #dfe6f0;
+    --papel: #ffffff;
+    --tinta: #14213d;
+    --tinta-suave: #5a6787;
+    --borda: #c9d3e3;
+    --destaque: #ffd23f;
+    --certo: #0f9d76;
+    --certo-bg: #e2f6ef;
+    --errado: #e5484d;
+    --errado-bg: #fdeaea;
+    --aviso: #f08a24;
+    --codigo-bg: #14213d;
+    --codigo-texto: #f6f8fb;
+    --fonte: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --codigo: ui-monospace, "Cascadia Code", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-tema="claro"]) {
+      --fundo: #0e1526; --grade: #18223a; --papel: #16203a; --tinta: #eef2fb;
+      --tinta-suave: #a3afca; --borda: #2c3a5c; --certo-bg: #0f2f2a; --errado-bg: #3a1a20;
+      --codigo-bg: #0a0f1d; --codigo-texto: #e6edf9;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    font-family: var(--fonte);
+    color: var(--tinta);
+    background-color: var(--fundo);
+    background-image:
+      linear-gradient(var(--grade) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grade) 1px, transparent 1px);
+    background-size: 28px 28px;
+    line-height: 1.5;
+  }
+  #root { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px 14px; }
+  .cartao {
+    width: 100%; max-width: 680px; background: var(--papel);
+    border: 2px solid var(--tinta); border-radius: 14px;
+    box-shadow: 6px 6px 0 var(--tinta); padding: 26px;
+  }
+  h1 { font-size: clamp(1.7rem, 5vw, 2.4rem); line-height: 1.1; margin: 0 0 12px; font-weight: 800; }
+  h2 { font-size: clamp(1.15rem, 3.4vw, 1.4rem); line-height: 1.3; margin: 0 0 18px; font-weight: 600; }
+  p { margin: 0 0 14px; }
+  .suave { color: var(--tinta-suave); }
+  code, pre { font-family: var(--codigo); }
+  pre {
+    background: var(--codigo-bg); color: var(--codigo-texto); border: 2px solid var(--borda);
+    padding: 12px 14px; border-radius: 8px;
+    margin: 0 0 16px; overflow-x: auto; font-size: .92rem; line-height: 1.5;
+  }
+  .info { list-style: none; padding: 0; margin: 0 0 22px; display: grid; gap: 8px; }
+  .info li { padding-left: 22px; position: relative; }
+  .info li::before { content: ""; position: absolute; left: 2px; top: .55em; width: 9px; height: 9px; background: var(--destaque); border: 2px solid var(--tinta); border-radius: 50%; }
+
+  button { font: inherit; cursor: pointer; }
+  .btn {
+    background: var(--destaque); color: #14213d; font-weight: 800; font-size: 1.05rem;
+    border: 2px solid var(--tinta); border-radius: 10px; padding: 12px 24px;
+    box-shadow: 3px 3px 0 var(--tinta); transition: transform .1s, box-shadow .1s;
+  }
+  .btn:hover { transform: translate(1px, 1px); box-shadow: 2px 2px 0 var(--tinta); }
+  .btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--tinta); }
+  button:focus-visible { outline: 3px solid var(--aviso); outline-offset: 3px; }
+
+  .topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; font-weight: 600; }
+  .relogio { font-variant-numeric: tabular-nums; font-weight: 800; font-size: 1.15rem; padding: 2px 12px; border: 2px solid var(--tinta); border-radius: 999px; min-width: 76px; text-align: center; }
+  .relogio.urgente { background: var(--errado); color: #fff; border-color: var(--errado); }
+  .trilho { height: 10px; background: var(--grade); border: 2px solid var(--tinta); border-radius: 999px; overflow: hidden; margin-bottom: 22px; }
+  .barra { height: 100%; background: var(--certo); transition: width 1s linear, background .3s; }
+  .barra.urgente { background: var(--errado); }
+  .barra.pausada { transition: none; }
+
+  .opcoes { display: grid; gap: 10px; }
+  .opcao {
+    display: flex; align-items: center; gap: 12px; text-align: left; width: 100%;
+    background: var(--papel); color: var(--tinta); padding: 12px 14px;
+    border: 2px solid var(--borda); border-radius: 10px; transition: border-color .15s, background .15s;
+  }
+  .opcao:hover:not(:disabled) { border-color: var(--tinta); background: color-mix(in srgb, var(--destaque) 22%, var(--papel)); }
+  .opcao:disabled { cursor: default; }
+  .letra { flex: none; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-weight: 800; border: 2px solid var(--borda); }
+  .opcao.certa { border-color: var(--certo); background: var(--certo-bg); }
+  .opcao.certa .letra { background: var(--certo); border-color: var(--certo); color: #fff; }
+  .opcao.errada { border-color: var(--errado); background: var(--errado-bg); }
+  .opcao.errada .letra { background: var(--errado); border-color: var(--errado); color: #fff; }
+  .opcao.apagada { opacity: .55; }
+
+  .retorno { margin: 18px 0 0; padding: 12px 14px; border-left: 6px solid var(--certo); background: var(--certo-bg); border-radius: 6px; }
+  .retorno.erro { border-left-color: var(--errado); background: var(--errado-bg); }
+  .retorno strong { display: block; margin-bottom: 2px; }
+  .rodape { margin-top: 20px; display: flex; justify-content: flex-end; }
+
+  .placar { font-size: clamp(3rem, 12vw, 4.5rem); font-weight: 800; line-height: 1; margin: 6px 0 4px; }
+  .revisao { list-style: none; padding: 0; margin: 20px 0 24px; display: grid; gap: 8px; }
+  .revisao li { padding: 10px 12px; border: 2px solid var(--borda); border-radius: 10px; font-size: .95rem; }
+  .revisao li.ok { border-color: var(--certo); background: var(--certo-bg); }
+  .revisao li.no { border-color: var(--errado); background: var(--errado-bg); }
+  .revisao small { display: block; color: var(--tinta-suave); margin-top: 2px; }
+  .premio { margin: 16px 0 0; padding: 14px 16px; border: 2px solid var(--tinta); border-radius: 12px; background: var(--grade); }
+  .premio h2 { margin: 0 0 6px; }
+  .premio p { margin: 0; }
+  .premio.ganhou { background: var(--destaque); color: #14213d; box-shadow: 4px 4px 0 var(--tinta); }
+  .cat { margin-left: 10px; font-weight: 400; color: var(--tinta-suave); }
+  .sorteio { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin: 20px 0 24px; }
+  .carta { display: grid; gap: 4px; align-content: center; min-height: 88px; padding: 12px; text-align: center; background: var(--papel); border: 2px solid var(--tinta); border-radius: 12px; }
+  .carta small { color: var(--tinta-suave); }
+  .carta strong { font-size: 1.2rem; }
+  .carta.travada { background: var(--destaque); color: #14213d; box-shadow: 3px 3px 0 var(--tinta); animation: trava .25s ease-out; }
+  .carta.travada small { color: #14213d; }
+  @keyframes trava { from { transform: scale(.92); } to { transform: scale(1); } }
+  .hud { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 16px; }
+  .chip { padding: 2px 12px; border: 2px solid var(--tinta); border-radius: 999px; font-weight: 800; background: var(--papel); font-variant-numeric: tabular-nums; }
+  .chip.fogo { background: var(--aviso); color: #14213d; animation: pulsa .5s ease-in-out; }
+  .poderes { margin-left: auto; display: flex; gap: 8px; }
+  .poder { padding: 2px 12px; border: 2px solid var(--tinta); border-radius: 999px; font-weight: 800; background: var(--destaque); color: #14213d; box-shadow: 2px 2px 0 var(--tinta); }
+  .poder:disabled { opacity: .35; box-shadow: none; cursor: not-allowed; }
+  .rota { display: flex; gap: 8px; margin-bottom: 14px; }
+  .no { flex: 1; height: 30px; display: grid; place-items: center; border: 2px solid var(--borda); border-radius: 8px; font-weight: 800; color: var(--tinta-suave); }
+  .no.atual { background: var(--destaque); border-color: var(--tinta); color: #14213d; }
+  .no.ok { background: var(--certo); border-color: var(--certo); color: #fff; }
+  .no.erro { background: var(--errado); border-color: var(--errado); color: #fff; }
+  .opcao.eliminada { opacity: .3; text-decoration: line-through; }
+  .bonus { display: block; margin-top: 2px; font-size: .9rem; color: var(--tinta-suave); }
+  .campo { display: grid; gap: 6px; margin-bottom: 18px; font-weight: 600; }
+  .campo input { font: inherit; padding: 10px 12px; color: var(--tinta); background: var(--papel); border: 2px solid var(--tinta); border-radius: 10px; }
+  .estrelas { font-size: 2.6rem; letter-spacing: 6px; line-height: 1; margin: 4px 0 8px; color: var(--aviso); }
+  .estrelas .apagada { opacity: .25; }
+  .titulo-rank { font-size: 1.3rem; font-weight: 800; }
+  .conquistas { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 18px 0; }
+  .conq { padding: 10px 12px; border: 2px dashed var(--borda); border-radius: 10px; opacity: .55; }
+  .conq.ganha { opacity: 1; border: 2px solid var(--tinta); background: var(--destaque); color: #14213d; box-shadow: 3px 3px 0 var(--tinta); }
+  .conq small { display: block; }
+  .placar-lista { list-style: none; padding: 0; margin: 10px 0 8px; display: grid; gap: 6px; counter-reset: pos; }
+  .placar-lista li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 12px; border: 2px solid var(--borda); border-radius: 10px; }
+  .placar-lista li.eu { border-color: var(--tinta); background: var(--destaque); color: #14213d; font-weight: 800; }
+  .link { background: none; border: 0; color: var(--tinta-suave); text-decoration: underline; padding: 0; font-size: .85rem; margin-bottom: 18px; }
+  .som { position: fixed; top: 12px; right: 12px; z-index: 5; width: 42px; height: 42px; font-size: 1.2rem; background: var(--papel); border: 2px solid var(--tinta); border-radius: 50%; }
+  .confete { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 4; }
+  .confete i { position: absolute; top: -20px; width: 10px; height: 16px; animation: cai 2.8s linear forwards; }
+  @keyframes cai { to { transform: translateY(110vh) rotate(720deg); } }
+  @keyframes pulsa { 50% { transform: scale(1.14); } }
+  @media (prefers-reduced-motion: reduce) { .confete { display: none; } }
+  .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: 3px 3px 0 var(--tinta); }
+  .btn.sec { background: var(--papel); color: var(--tinta); }
+  .acoes-fim { display: flex; flex-wrap: wrap; gap: 10px; }
+  .posicao { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+  .posicao div { padding: 10px 12px; text-align: center; border: 2px solid var(--tinta); border-radius: 12px; background: var(--papel); }
+  .posicao strong { display: block; font-size: 1.9rem; line-height: 1.1; }
+  .posicao small { color: var(--tinta-suave); }
+  .abas { display: flex; gap: 8px; margin-bottom: 12px; }
+  .aba { flex: 1; padding: 8px; font-weight: 800; color: var(--tinta); background: var(--papel); border: 2px solid var(--tinta); border-radius: 10px; }
+  .aba.on { background: var(--destaque); color: #14213d; box-shadow: 2px 2px 0 var(--tinta); }
+  .campeao { margin: 0 0 14px; padding: 10px 14px; font-weight: 800; background: var(--destaque); color: #14213d; border: 2px solid var(--tinta); border-radius: 12px; box-shadow: 3px 3px 0 var(--tinta); }
+  .placar-lista small { display: block; font-weight: 400; opacity: .75; }
+  .prof { margin: 0 0 18px; padding: 10px 12px; border: 2px dashed var(--borda); border-radius: 10px; }
+  .prof summary { cursor: pointer; font-weight: 600; }
+  .prof .acoes-fim { margin: 12px 0; }
+  .prof textarea { width: 100%; font: inherit; font-size: .9rem; padding: 8px; color: var(--tinta); background: var(--papel); border: 2px solid var(--borda); border-radius: 8px; }
+  .aviso { margin: 0 0 14px; padding: 8px 12px; font-size: .9rem; background: var(--grade); border-left: 6px solid var(--aviso); border-radius: 6px; }
+  .dir { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .excluir { padding: 0 7px; font-size: 1rem; color: var(--errado); background: var(--papel); border: 2px solid var(--errado); border-radius: 8px; }
+  .mini { padding: 4px 12px; font-weight: 600; color: var(--tinta); background: var(--papel); border: 2px solid var(--tinta); border-radius: 8px; }
+  @media (max-width: 420px) { .cartao { padding: 18px; box-shadow: 4px 4px 0 var(--tinta); } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- =====================================================================
+     CONFIGURAÇÕES DO PROFESSOR  (edite aqui)
+     ===================================================================== -->
+<script>
+  const CONFIG = {
+    titulo: "Quiz de Lógica e História da Informática",
+    tempoPorPergunta: 30,          // segundos por pergunta. Use 0 para desativar o timer.
+
+    // ----- Sorteador -----
+    sorteio: { "Lógica": 2, "História da Informática": 2 },  // quantas perguntas sortear de cada categoria (aqui: 4 no total)
+    evitarRepetir: true,           // não repete perguntas na mesma sessão até esgotar a categoria
+    animacaoSorteio: true,         // mostra a tela de sorteio antes de começar
+    embaralharPerguntas: true,     // mistura a ordem das perguntas sorteadas
+    embaralharAlternativas: true,  // muda a posição das alternativas a cada partida
+
+    mostrarExplicacao: true,       // mostra a explicação depois de cada resposta
+    alertaUltimosSegundos: 5,      // timer fica vermelho quando restar esse tempo
+
+    // ----- Gamificação -----
+    pontosPorAcerto: 100,          // pontos base por resposta certa
+    bonusPorSegundo: 5,            // pontos extras por segundo que sobrar no timer
+    bonusCombo: 25,                // pontos extras por acerto seguido (combo)
+    poderesAtivos: true,           // poderes 50/50 e +tempo (1 uso de cada por partida)
+    segundosExtra: 10,             // segundos ganhos com o poder +tempo
+    somAtivo: true,                // efeitos sonoros (o aluno pode silenciar no botão)
+    rankingAtivo: true,            // ranking de escolas e alunos salvo neste computador
+    criterioEscola: "soma",        // "soma": escola vale a soma da melhor nota de cada aluno | "media": média dos alunos
+    senhaAdmin: "134562",          // senha do administrador: exportar, importar, excluir registros e apagar tudo (deixe "" para não pedir)
+    escolas: [],                   // lista opcional de escolas para sugerir no cadastro. Ex.: ["Escola A", "Colégio B"]
+
+    // ----- Prêmio -----
+    premioAtivo: true,             // false desliga a mensagem de prêmio
+    acertosParaGanhar: 4,          // acertos necessários para ganhar (igual ao nº de perguntas = acertar todas)
+    textoPremio: "Você ganhou o prêmio!"
+  };
+
+  // Formato: { categoria ("Lógica" ou "História da Informática"), pergunta, codigo (opcional), alternativas: [4 textos], correta: índice (0 a 3), explicacao }
+  const PERGUNTAS = [
+    // ---------- LÓGICA ----------
+    {
+      categoria: "Lógica",
+      pergunta: "Numa ilha, cavaleiros sempre dizem a verdade e patifes sempre mentem. A diz: \"B é cavaleiro.\" B diz: \"A e eu somos de tipos diferentes.\" Quem é quem?",
+      alternativas: ["Os dois são cavaleiros", "A é cavaleiro e B é patife", "A é patife e B é cavaleiro", "Os dois são patifes"],
+      correta: 3,
+      explicacao: "Se A fosse cavaleiro, B seria cavaleiro e a fala de B (\"somos diferentes\") seria falsa, o que um cavaleiro não faz. Então A é patife: sua fala é mentira e B também é patife. A fala de B é falsa, o que combina com um patife."
+    },
+    {
+      categoria: "Lógica",
+      pergunta: "Qual afirmação é logicamente equivalente a \"Se estudo, então passo\"?",
+      alternativas: ["Se passo, então estudei", "Se não estudo, então não passo", "Se não passo, então não estudei", "Estudo e não passo"],
+      correta: 2,
+      explicacao: "A contrapositiva de \"se P então Q\" é \"se não Q então não P\", sempre com o mesmo valor lógico. As outras duas (recíproca e inversa) podem ser falsas: dá para passar sem ter estudado."
+    },
+    {
+      categoria: "Lógica",
+      pergunta: "Todos os robôs são máquinas. Nenhuma máquina é ser vivo. Qual conclusão é necessariamente verdadeira?",
+      alternativas: ["Alguns seres vivos são robôs", "Nenhum robô é ser vivo", "Todas as máquinas são robôs", "Alguns robôs são seres vivos"],
+      correta: 1,
+      explicacao: "Os robôs estão dentro do conjunto das máquinas, e nenhuma máquina está no conjunto dos seres vivos. Logo, nenhum robô é ser vivo. \"Todas as máquinas são robôs\" inverte a primeira frase, o que não é permitido."
+    },
+    {
+      categoria: "Lógica",
+      pergunta: "Qual é o próximo número da sequência 2, 3, 5, 9, 17, ...?",
+      alternativas: ["25", "31", "33", "35"],
+      correta: 2,
+      explicacao: "As diferenças entre os termos são 1, 2, 4 e 8, ou seja, dobram a cada passo. A próxima diferença é 16, e 17 + 16 = 33."
+    },
+    {
+      categoria: "Lógica",
+      pergunta: "Numa sala há 8 pessoas e cada uma cumprimenta todas as outras exatamente uma vez. Quantos apertos de mão acontecem?",
+      alternativas: ["16", "56", "28", "64"],
+      correta: 2,
+      explicacao: "Cada pessoa cumprimenta 7 outras, o que dá 8 × 7 = 56. Mas cada aperto foi contado duas vezes (uma por pessoa), então 56 ÷ 2 = 28."
+    },
+    {
+      categoria: "Lógica",
+      pergunta: "Qual é o número mínimo de alunos numa sala para garantir que pelo menos dois façam aniversário no mesmo mês?",
+      alternativas: ["12", "13", "24", "25"],
+      correta: 1,
+      explicacao: "Com 12 alunos, cada um poderia ter um mês diferente. O 13º obrigatoriamente repete um mês. É o princípio da casa dos pombos."
+    },
+    {
+      categoria: "Lógica",
+      pergunta: "Há três caixas com os rótulos \"Maçãs\", \"Laranjas\" e \"Mistura\". Todos os rótulos estão errados. Você pode tirar uma fruta de uma única caixa. De qual delas deve tirar para descobrir o conteúdo de todas?",
+      alternativas: ["Da caixa \"Maçãs\"", "Da caixa \"Laranjas\"", "Da caixa \"Mistura\"", "Tanto faz, qualquer uma resolve"],
+      correta: 2,
+      explicacao: "A caixa \"Mistura\" tem o rótulo errado, então guarda só maçãs ou só laranjas. Se sair uma maçã, ela é a caixa das maçãs. A rotulada \"Laranjas\" não pode ser de laranjas nem de maçãs, logo é a mistura, e a rotulada \"Maçãs\" é a de laranjas. Nas outras caixas, uma fruta só não resolve."
+    },
+    {
+      categoria: "Lógica",
+      pergunta: "Numa escada, uma lâmpada é controlada por dois interruptores (um embaixo e um em cima). Acionar qualquer um deles muda o estado da lâmpada. Qual porta lógica representa esse comportamento?",
+      alternativas: ["AND (E)", "OR (OU)", "XOR (OU exclusivo)", "NAND (NÃO-E)"],
+      correta: 2,
+      explicacao: "A lâmpada acende quando os interruptores estão em posições diferentes e apaga quando estão iguais. É exatamente o que faz a porta XOR."
+    },
+
+    // ---------- HISTÓRIA DA COMPUTAÇÃO ----------
+    {
+      categoria: "História da Informática",
+      pergunta: "Quem é considerada a primeira programadora da história, por escrever em 1843 um algoritmo para a Máquina Analítica de Charles Babbage?",
+      alternativas: ["Grace Hopper", "Hedy Lamarr", "Ada Lovelace", "Katherine Johnson"],
+      correta: 2,
+      explicacao: "Ada Lovelace descreveu um método para calcular números de Bernoulli na máquina de Babbage, que nem chegou a ser construída. Ela também intuiu que máquinas poderiam manipular símbolos, não só números."
+    },
+    {
+      categoria: "História da Informática",
+      pergunta: "O que foi a \"Máquina de Turing\", apresentada por Alan Turing em 1936?",
+      alternativas: [
+        "O aparelho usado na Segunda Guerra para decifrar o código Enigma",
+        "Uma calculadora mecânica de engrenagens",
+        "Um modelo matemático teórico que define o que pode ser calculado por um algoritmo",
+        "O primeiro computador pessoal vendido ao público"
+      ],
+      correta: 2,
+      explicacao: "É uma máquina imaginária, uma ideia e não um aparelho, e serve de base para a teoria da computação. O aparelho para quebrar o Enigma foi outro, a Bombe, projetada com participação de Turing."
+    },
+    {
+      categoria: "História da Informática",
+      pergunta: "O ENIAC, apresentado ao público em 1946, é um dos primeiros computadores eletrônicos de uso geral. Qual tecnologia fazia seus circuitos funcionarem?",
+      alternativas: ["Transistores", "Válvulas a vácuo", "Circuitos integrados", "Microprocessadores"],
+      correta: 1,
+      explicacao: "O ENIAC usava cerca de 17 mil válvulas, ocupava uma sala inteira e esquentava muito. Os transistores só foram inventados em 1947."
+    },
+    {
+      categoria: "História da Informática",
+      pergunta: "Qual sequência mostra corretamente a evolução das tecnologias dos computadores, da mais antiga para a mais recente?",
+      alternativas: [
+        "Válvulas, transistores, circuitos integrados, microprocessadores",
+        "Transistores, válvulas, microprocessadores, circuitos integrados",
+        "Circuitos integrados, válvulas, transistores, microprocessadores",
+        "Válvulas, circuitos integrados, transistores, microprocessadores"
+      ],
+      correta: 0,
+      explicacao: "Válvulas (anos 1940), transistores (inventados em 1947 e usados nos computadores dos anos 1950), circuitos integrados (anos 1960) e microprocessadores (1971, com o Intel 4004)."
+    },
+    {
+      categoria: "História da Informática",
+      pergunta: "Grace Hopper, oficial da Marinha dos EUA, é lembrada por qual contribuição à computação?",
+      alternativas: [
+        "Inventar o mouse",
+        "Projetar a rede ARPANET",
+        "Criar o primeiro videogame",
+        "Criar um dos primeiros compiladores, que traduzem uma linguagem próxima da humana para a máquina"
+      ],
+      correta: 3,
+      explicacao: "Nos anos 1950 ela desenvolveu o A-0, considerado um dos primeiros compiladores, e defendeu programar em linguagem parecida com o inglês, ideia que inspirou o COBOL."
+    },
+    {
+      categoria: "História da Informática",
+      pergunta: "A ARPANET, rede que deu origem à internet, foi criada no fim dos anos 1960 com financiamento de qual instituição?",
+      alternativas: ["NASA", "Departamento de Defesa dos EUA", "IBM", "Universidade de Harvard"],
+      correta: 1,
+      explicacao: "Foi financiada pela agência ARPA, ligada ao Departamento de Defesa dos EUA. Em 1969, a primeira mensagem foi enviada entre duas instituições da Califórnia: a UCLA e o Stanford Research Institute."
+    },
+    {
+      categoria: "História da Informática",
+      pergunta: "Tim Berners-Lee criou a World Wide Web no CERN, no início dos anos 1990. Qual é a diferença entre a internet e a Web?",
+      alternativas: [
+        "Internet e Web são exatamente a mesma coisa",
+        "A internet é a rede global que conecta computadores; a Web é um serviço que funciona sobre ela, com páginas ligadas por links",
+        "A Web é a rede física de cabos; a internet são só os sites",
+        "A Web surgiu antes e a internet foi criada a partir dela"
+      ],
+      correta: 1,
+      explicacao: "A internet já existia desde os anos 1960 e 1970 e conecta redes. A Web (páginas, links e navegadores) é um dos serviços que usam a internet, assim como o e-mail."
+    },
+    {
+      categoria: "História da Informática",
+      pergunta: "Em 1968, numa demonstração conhecida como \"a mãe de todas as demos\", Douglas Engelbart apresentou qual invenção que hoje usamos em quase todo computador?",
+      alternativas: ["O mouse", "O pen drive", "O Wi-Fi", "A tela sensível ao toque"],
+      correta: 0,
+      explicacao: "Engelbart mostrou o mouse, além de janelas na tela, hipertexto e videoconferência, muitos anos antes de essas ideias chegarem ao público."
+    },
+    {
+      categoria: "História da Informática",
+      pergunta: "Qual foi o primeiro microprocessador comercial, lançado pela Intel em 1971?",
+      alternativas: ["Intel 8086", "Pentium", "Intel 4004", "Z80"],
+      correta: 2,
+      explicacao: "O Intel 4004 colocou a unidade de processamento inteira em um único chip e abriu caminho para os computadores pessoais dos anos seguintes."
+    },
+    {
+      categoria: "História da Informática",
+      pergunta: "O que foi o Colossus, construído pelos britânicos durante a Segunda Guerra Mundial?",
+      alternativas: ["Uma linguagem de programação", "Um computador eletrônico usado para decifrar mensagens alemãs", "A primeira rede de computadores do mundo", "Uma calculadora de bolso"],
+      correta: 1,
+      explicacao: "O Colossus (1943 e 1944) era um computador eletrônico programável, feito para ajudar a quebrar o código Lorenz, usado nas comunicações do alto comando alemão."
+    },
+    {
+      categoria: "História da Informática",
+      pergunta: "Em que ano o acesso comercial à internet foi liberado ao público no Brasil?",
+      alternativas: ["1985", "1990", "2000", "1995"],
+      correta: 3,
+      explicacao: "Em 1995 a internet passou a ser oferecida a empresas e pessoas comuns no país. Antes disso, ficava restrita a universidades e centros de pesquisa."
+    },
+    {
+      categoria: "História da Informática",
+      pergunta: "O que diz a \"Lei de Moore\", formulada por Gordon Moore, cofundador da Intel?",
+      alternativas: ["O número de transistores em um chip dobra a cada cerca de dois anos", "Todo computador dura exatamente dois anos", "A internet dobra de velocidade todo ano", "O preço dos computadores cai pela metade a cada mês"],
+      correta: 0,
+      explicacao: "Moore observou em 1965 esse crescimento e, em 1975, ajustou o ritmo para cerca de dois anos. Não é uma lei da natureza, e sim uma tendência que guiou a indústria por décadas."
+    }
+  ];
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+
+<script type="text/babel">
+  const { useState, useEffect } = React;
+  const LETRAS = ["A", "B", "C", "D", "E", "F"];
+
+  function embaralhar(lista) {
+    const a = [...lista];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // Memória da sessão: perguntas já sorteadas em cada categoria
+  const jaSorteadas = {};
+
+  // Sorteia perguntas por categoria, sem repetir até esgotar a categoria
+  function sortearPerguntas() {
+    const escolhidas = [];
+    for (const [cat, n] of Object.entries(CONFIG.sorteio)) {
+      const todas = PERGUNTAS.map((_, i) => i).filter(i => PERGUNTAS[i].categoria === cat);
+      const usadas = jaSorteadas[cat] || (jaSorteadas[cat] = new Set());
+      let sorteio;
+      if (!CONFIG.evitarRepetir) {
+        sorteio = embaralhar(todas).slice(0, n);
+      } else {
+        const livres = todas.filter(i => !usadas.has(i));
+        if (livres.length >= n) {
+          sorteio = embaralhar(livres).slice(0, n);
+        } else {                      // categoria esgotou: usa o que sobrou e começa um novo ciclo
+          usadas.clear();
+          const extras = embaralhar(todas.filter(i => !livres.includes(i))).slice(0, n - livres.length);
+          sorteio = [...livres, ...extras];
+        }
+        sorteio.forEach(i => usadas.add(i));
+      }
+      sorteio.forEach(i => escolhidas.push(PERGUNTAS[i]));
+    }
+    return CONFIG.embaralharPerguntas ? embaralhar(escolhidas) : escolhidas;
+  }
+
+  // Monta a partida: cada alternativa vira { texto, certa }
+  function prepararPartida() {
+    const base = sortearPerguntas();
+    return base.map(p => {
+      const alts = p.alternativas.map((texto, i) => ({ texto, certa: i === p.correta }));
+      return { ...p, opcoes: CONFIG.embaralharAlternativas ? embaralhar(alts) : alts };
+    });
+  }
+
+// ---------- Som, ranking e utilidades de jogo ----------
+  const audio = { ctx: null, mudo: false };
+  function bip(freq, dur = 0.12, tipo = "sine") {
+    if (!CONFIG.somAtivo || audio.mudo) return;
+    try {
+      const c = audio.ctx || (audio.ctx = new (window.AudioContext || window.webkitAudioContext)());
+      if (c.state === "suspended") c.resume();
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = tipo; o.frequency.value = freq; g.gain.value = 0.08;
+      o.connect(g); g.connect(c.destination);
+      g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+      o.start(); o.stop(c.currentTime + dur);
+    } catch (e) {}
+  }
+  const somAcerto = () => { bip(660, 0.1, "triangle"); setTimeout(() => bip(880, 0.16, "triangle"), 100); };
+  const somErro = () => bip(170, 0.3, "sawtooth");
+  const fanfarra = () => [523, 659, 784, 1047].forEach((f, k) => setTimeout(() => bip(f, 0.2, "triangle"), k * 140));
+
+  const RANKS = [
+    { min: 0, nome: "Novato(a) digital" },
+    { min: 25, nome: "Técnico(a) de Informática" },
+    { min: 50, nome: "Analista de Sistemas" },
+    { min: 75, nome: "Hacker do Bem" },
+    { min: 100, nome: "Lenda da Informática" }
+  ];
+  const CHAVE_RANKING = "quizRankingInformatica2";
+  // Salva no navegador (localStorage). Se ele estiver bloqueado, usa window.name, que sobrevive a atualizar a aba.
+  function lerJogadas() {
+    try { const v = localStorage.getItem(CHAVE_RANKING); if (v) return JSON.parse(v); } catch (e) {}
+    try { if (window.name.startsWith(CHAVE_RANKING + ":")) return JSON.parse(window.name.slice(CHAVE_RANKING.length + 1)); } catch (e) {}
+    return [];
+  }
+  function salvarJogadas(l) {
+    const txt = JSON.stringify(l);
+    try { localStorage.setItem(CHAVE_RANKING, txt); } catch (e) {}
+    try { window.name = CHAVE_RANKING + ":" + txt; } catch (e) {}
+  }
+  function armazenamentoOk() {
+    try { localStorage.setItem("__teste", "1"); localStorage.removeItem("__teste"); return true; } catch (e) { return false; }
+  }
+  const norm = t => String(t).trim().toLowerCase();
+  const chaveAluno = j => norm(j.escola) + "|" + norm(j.nome);
+  const novoId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const pedirPin = () => !CONFIG.senhaAdmin || window.prompt("Senha do administrador:") === CONFIG.senhaAdmin;
+
+  // Cada aluno conta com a melhor pontuação; a escola soma (ou faz a média) dos alunos
+  function classificar(jogadas) {
+    const melhores = {};
+    jogadas.forEach(j => { const k = chaveAluno(j); if (!melhores[k] || j.pontos > melhores[k].pontos) melhores[k] = j; });
+    const alunos = Object.values(melhores).sort((a, b) => b.pontos - a.pontos);
+    const porEscola = {};
+    alunos.forEach(a => {
+      const e = porEscola[norm(a.escola)] || (porEscola[norm(a.escola)] = { nome: a.escola, total: 0, alunos: 0 });
+      e.total += a.pontos; e.alunos++;
+    });
+    const escolas = Object.values(porEscola).map(e => ({ ...e, media: Math.round(e.total / e.alunos) }))
+      .sort((a, b) => CONFIG.criterioEscola === "media" ? b.media - a.media : b.total - a.total);
+    return { alunos, escolas };
+  }
+
+  function Confete() {
+    const cores = ["#ffd23f", "#0f9d76", "#e5484d", "#4c8dff", "#f08a24"];
+    const [pecas] = useState(() => Array.from({ length: 44 }, (_, k) => ({ l: Math.random() * 100, d: Math.random() * 1.2, c: cores[k % cores.length] })));
+    return <div className="confete" aria-hidden="true">{pecas.map((x, k) => <i key={k} style={{ left: x.l + "%", background: x.c, animationDelay: x.d + "s" }} />)}</div>;
+  }
+
+  // ---------- Telas ----------
+  function Inicio({ onComecar, onRanking }) {
+    const [nome, setNome] = useState("");
+    const [escola, setEscola] = useState("");
+    const [sugestoes] = useState(() => [...new Set([...CONFIG.escolas, ...lerJogadas().map(j => j.escola)])]);
+    const t = CONFIG.tempoPorPergunta;
+    const qtd = Object.values(CONFIG.sorteio).reduce((a, b) => a + b, 0);
+    const detalhe = Object.entries(CONFIG.sorteio).map(([c, n]) => `${n} de ${c}`).join(", ");
+    const pronto = nome.trim() && escola.trim();
+    return (
+      <div className="cartao">
+        <h1><span className="marca">{CONFIG.titulo}</span></h1>
+        <p className="suave">Ganhe pontos, monte combos e leve sua escola ao topo do ranking.</p>
+        <label className="campo">Sua escola
+          <input list="lista-escolas" maxLength={30} value={escola} onChange={e => setEscola(e.target.value)} placeholder="Ex.: Colégio Estadual Central" />
+          <datalist id="lista-escolas">{sugestoes.map(x => <option key={x} value={x} />)}</datalist>
+        </label>
+        <label className="campo">Seu apelido
+          <input maxLength={16} value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex.: Ada" />
+        </label>
+        <ul className="info">
+          <li>{qtd} perguntas sorteadas para você: {detalhe}</li>
+          <li>{t > 0 ? `${t} segundos por pergunta: quanto mais rápido, mais pontos` : "Sem limite de tempo"}</li>
+          <li>+{CONFIG.pontosPorAcerto} pontos por acerto e bônus de combo a cada acerto seguido</li>
+          {CONFIG.poderesAtivos && <li>Poderes, um uso de cada por partida: 50/50{t > 0 ? ` e +${CONFIG.segundosExtra}s` : ""}</li>}
+          {CONFIG.rankingAtivo && <li>Sua melhor pontuação entra no ranking de alunos e de escolas</li>}
+          {CONFIG.premioAtivo && <li>Para ganhar o prêmio, {CONFIG.acertosParaGanhar >= qtd ? "acerte todas" : `acerte pelo menos ${CONFIG.acertosParaGanhar}`}</li>}
+        </ul>
+        <div className="acoes-fim">
+          <button className="btn" disabled={!pronto} onClick={() => { bip(523, 0.1); onComecar(nome.trim(), escola.trim()); }}>Começar jogo</button>
+          {CONFIG.rankingAtivo && <button className="btn sec" onClick={onRanking}>Ver ranking</button>}
+        </div>
+      </div>
+    );
+  }
+
+  function Sorteio({ partida, onIniciar }) {
+    const cats = Object.keys(CONFIG.sorteio);
+    const [fixas, setFixas] = useState(0);
+    const [tic, setTic] = useState(0);
+    const pronto = fixas >= partida.length;
+    useEffect(() => {
+      const travas = partida.map((_, k) => setTimeout(() => { setFixas(k + 1); bip(500 + k * 130, 0.09, "square"); }, 900 + k * 650));
+      return () => travas.forEach(clearTimeout);
+    }, []);
+    useEffect(() => {
+      if (pronto) return;
+      const id = setInterval(() => setTic(t => t + 1), 90);
+      return () => clearInterval(id);
+    }, [pronto]);
+    return (
+      <div className="cartao">
+        <h1>{pronto ? "Sorteio feito!" : "Sorteando suas perguntas..."}</h1>
+        <p className="suave">{pronto ? "Estas são as categorias das suas perguntas. Quando estiver pronto, comece." : "Cada aluno recebe um conjunto diferente."}</p>
+        <div className="sorteio">
+          {partida.map((p, k) => {
+            const travada = k < fixas;
+            return (
+              <div key={k} className={"carta" + (travada ? " travada" : "")}>
+                <small>Pergunta {k + 1}</small>
+                <strong>{travada ? p.categoria : cats[(tic + k) % cats.length]}</strong>
+              </div>
+            );
+          })}
+        </div>
+        {pronto && <button className="btn" onClick={onIniciar}>Iniciar perguntas</button>}
+      </div>
+    );
+  }
+
+  function Pergunta({ partida, onFinalizar }) {
+    const total = CONFIG.tempoPorPergunta;
+    const temTimer = total > 0;
+    const [i, setI] = useState(0);
+    const [escolha, setEscolha] = useState(null);   // índice escolhido, -1 = tempo esgotado
+    const [tempo, setTempo] = useState(total);
+    const [limite, setLimite] = useState(total);
+    const [log, setLog] = useState([]);
+    const [usou, setUsou] = useState({ meio: false, extra: false });
+    const [ocultas, setOcultas] = useState([]);
+
+    const p = partida[i];
+    const respondida = escolha !== null;
+    const urgente = temTimer && tempo <= CONFIG.alertaUltimosSegundos && !respondida;
+    const pontos = log.reduce((a, l) => a + l.pts, 0);
+    let combo = 0;
+    for (let k = log.length - 1; k >= 0 && log[k].certa; k--) combo++;
+    const ultimo = respondida ? log[log.length - 1] : null;
+
+    function responder(idx) {
+      if (respondida) return;
+      const certa = idx >= 0 && p.opcoes[idx].certa;
+      const bTempo = certa ? tempo * CONFIG.bonusPorSegundo : 0;
+      const bCombo = certa ? combo * CONFIG.bonusCombo : 0;
+      const pts = certa ? CONFIG.pontosPorAcerto + bTempo + bCombo : 0;
+      certa ? somAcerto() : somErro();
+      setEscolha(idx);
+      setLog(l => [...l, { escolha: idx, certa, restante: tempo, pts, bTempo, bCombo, ajuda: ocultas.length > 0 || limite > total }]);
+    }
+
+    function meioAMeio() {
+      if (usou.meio || respondida) return;
+      const erradas = p.opcoes.map((_, k) => k).filter(k => !p.opcoes[k].certa);
+      setOcultas(embaralhar(erradas).slice(0, 2));
+      setUsou(u => ({ ...u, meio: true }));
+      bip(440, 0.1, "square");
+    }
+    function maisTempo() {
+      if (usou.extra || respondida || !temTimer) return;
+      setTempo(t => t + CONFIG.segundosExtra);
+      setLimite(l => l + CONFIG.segundosExtra);
+      setUsou(u => ({ ...u, extra: true }));
+      bip(760, 0.1, "square");
+    }
+
+    useEffect(() => {
+      if (!temTimer || respondida) return;
+      if (tempo <= 0) { responder(-1); return; }
+      const id = setTimeout(() => {
+        setTempo(t => t - 1);
+        if (tempo - 1 <= CONFIG.alertaUltimosSegundos) bip(300, 0.05, "square");
+      }, 1000);
+      return () => clearTimeout(id);
+    }, [tempo, respondida]);
+
+    function proxima() {
+      if (i + 1 < partida.length) {
+        setI(i + 1); setEscolha(null); setTempo(total); setLimite(total); setOcultas([]);
+      } else {
+        onFinalizar(log);
+      }
+    }
+
+    const acertou = respondida && escolha >= 0 && p.opcoes[escolha].certa;
+    const mm = String(Math.floor(tempo / 60)).padStart(2, "0");
+    const ss = String(tempo % 60).padStart(2, "0");
+
+    return (
+      <div className="cartao">
+        <div className="topo">
+          <span>Pergunta {i + 1} de {partida.length}<span className="cat">{p.categoria}</span></span>
+          {temTimer && <span className={"relogio" + (urgente ? " urgente" : "")}>{mm}:{ss}</span>}
+        </div>
+        <div className="rota" aria-hidden="true">
+          {partida.map((_, k) => <span key={k} className={"no " + (k < log.length ? (log[k].certa ? "ok" : "erro") : k === i ? "atual" : "")}>{k + 1}</span>)}
+        </div>
+        {temTimer && (
+          <div className="trilho" aria-hidden="true">
+            <div className={"barra" + (urgente ? " urgente" : "") + (respondida ? " pausada" : "")}
+                 style={{ width: `${Math.min(100, Math.max(0, ((tempo - (respondida ? 0 : 1)) / limite) * 100))}%` }} />
+          </div>
+        )}
+        <div className="hud">
+          <span className="chip">⭐ {pontos} pts</span>
+          {combo >= 2 && <span className="chip fogo" key={combo}>🔥 Combo x{combo}</span>}
+          {CONFIG.poderesAtivos && (
+            <span className="poderes">
+              <button className="poder" disabled={usou.meio || respondida} onClick={meioAMeio}>50/50</button>
+              {temTimer && <button className="poder" disabled={usou.extra || respondida} onClick={maisTempo}>+{CONFIG.segundosExtra}s</button>}
+            </span>
+          )}
+        </div>
+
+        <h2>{p.pergunta}</h2>
+        {p.codigo && <pre><code>{p.codigo}</code></pre>}
+
+        <div className="opcoes">
+          {p.opcoes.map((o, k) => {
+            let cls = "opcao";
+            if (ocultas.includes(k) && !respondida) cls += " eliminada";
+            if (respondida) {
+              if (o.certa) cls += " certa";
+              else if (k === escolha) cls += " errada";
+              else cls += " apagada";
+            }
+            return (
+              <button key={k} className={cls} disabled={respondida || ocultas.includes(k)} onClick={() => responder(k)}>
+                <span className="letra">{LETRAS[k]}</span>
+                <span>{o.texto}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {respondida && (
+          <div className={"retorno" + (acertou ? "" : " erro")} role="status">
+            <strong>{acertou ? `Correto! +${ultimo.pts} pontos` : escolha === -1 ? "O tempo acabou. Combo zerado." : "Resposta incorreta. Combo zerado."}</strong>
+            {acertou && <span className="bonus">Base {CONFIG.pontosPorAcerto}{ultimo.bTempo > 0 ? ` + velocidade ${ultimo.bTempo}` : ""}{ultimo.bCombo > 0 ? ` + combo ${ultimo.bCombo}` : ""}</span>}
+            {CONFIG.mostrarExplicacao && p.explicacao}
+          </div>
+        )}
+        {respondida && (
+          <div className="rodape">
+            <button className="btn" onClick={proxima}>{i + 1 < partida.length ? "Próxima pergunta" : "Ver resultado"}</button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function Resultado({ partida, log, nome, escola, onReiniciar, onRanking }) {
+    const n = partida.length;
+    const total = CONFIG.tempoPorPergunta;
+    const acertos = log.filter(l => l.certa).length;
+    const pontos = log.reduce((a, l) => a + l.pts, 0);
+    const pct = Math.round((acertos / n) * 100);
+    const rank = [...RANKS].reverse().find(r => pct >= r.min);
+    const estrelas = pct === 100 ? 3 : pct >= 75 ? 2 : pct >= 50 ? 1 : 0;
+    const necessarios = Math.min(CONFIG.acertosParaGanhar, n);
+    const ganhou = CONFIG.premioAtivo && acertos >= necessarios;
+    let melhorCombo = 0, seq = 0;
+    log.forEach(l => { seq = l.certa ? seq + 1 : 0; melhorCombo = Math.max(melhorCombo, seq); });
+    const cats = [...new Set(partida.map(p => p.categoria))];
+    const conquistas = [
+      { nome: "Perfeito", desc: "Acertou todas", ok: acertos === n },
+      { nome: "Combo x3", desc: "3 acertos seguidos", ok: melhorCombo >= 3 },
+      { nome: "Relâmpago", desc: "Acertou com 2/3 do tempo sobrando", ok: total > 0 && log.some(l => l.certa && l.restante >= (total * 2) / 3) },
+      { nome: "Sem ajuda", desc: "Acertou tudo sem poderes", ok: acertos === n && !log.some(l => l.ajuda) },
+      ...cats.map(c => ({ nome: `Craque: ${c}`, desc: `Acertou todas de ${c}`, ok: partida.every((p, k) => p.categoria !== c || log[k].certa) }))
+    ];
+    const [pos] = useState(() => {
+      const jogada = { id: novoId(), escola, nome, pontos, acertos, data: Date.now() };
+      const todas = [...lerJogadas(), jogada];
+      if (CONFIG.rankingAtivo) salvarJogadas(todas);
+      const c = classificar(todas);
+      return {
+        aluno: c.alunos.findIndex(a => chaveAluno(a) === chaveAluno(jogada)) + 1,
+        escola: c.escolas.findIndex(e => norm(e.nome) === norm(escola)) + 1,
+        totalAlunos: c.alunos.length, totalEscolas: c.escolas.length
+      };
+    });
+    useEffect(() => { if (ganhou) fanfarra(); else bip(260, 0.35, "triangle"); }, []);
+
+    return (
+      <div className="cartao">
+        {ganhou && <Confete />}
+        <h1>Fim de jogo, {nome}!</h1>
+        <div className="estrelas" aria-label={`${estrelas} de 3 estrelas`}>
+          {[0, 1, 2].map(k => <span key={k} className={k < estrelas ? "" : "apagada"}>★</span>)}
+        </div>
+        <div className="titulo-rank">{rank.nome}</div>
+        <div className="placar">{pontos} pts</div>
+        <p className="suave">{acertos} de {n} acertos. Melhor combo: x{melhorCombo}.</p>
+
+        {CONFIG.premioAtivo && (
+          <div className={"premio" + (ganhou ? " ganhou" : "")}>
+            <h2>{ganhou ? "🏆 " + CONFIG.textoPremio : "Não foi dessa vez"}</h2>
+            <p>{`Você acertou ${acertos} de ${n}.`}{ganhou ? "" : ` Eram necessários ${necessarios}.`}</p>
+          </div>
+        )}
+
+        <h2 style={{ marginTop: 22, marginBottom: 0 }}>Conquistas</h2>
+        <div className="conquistas">
+          {conquistas.map((c, k) => (
+            <div key={k} className={"conq" + (c.ok ? " ganha" : "")}>
+              <strong>{c.ok ? "🏅 " : "🔒 "}{c.nome}</strong>
+              <small>{c.desc}</small>
+            </div>
+          ))}
+        </div>
+
+        {CONFIG.rankingAtivo && (
+          <div className="posicao">
+            <div><strong>{pos.aluno}º</strong><small>entre {pos.totalAlunos} {pos.totalAlunos === 1 ? "aluno" : "alunos"}</small></div>
+            <div><strong>{pos.escola}º</strong><small>{escola}, entre {pos.totalEscolas} {pos.totalEscolas === 1 ? "escola" : "escolas"}</small></div>
+          </div>
+        )}
+
+        <ul className="revisao">
+          {partida.map((p, k) => {
+            const l = log[k];
+            const certa = p.opcoes.find(o => o.certa).texto;
+            const sua = l.escolha === -1 ? "Sem resposta (tempo esgotado)" : p.opcoes[l.escolha].texto;
+            return (
+              <li key={k} className={l.certa ? "ok" : "no"}>
+                <strong>{k + 1}. {p.pergunta}</strong>
+                <small>{l.certa ? `Você acertou (+${l.pts} pts): ${certa}` : `Sua resposta: ${sua}. Correta: ${certa}`}</small>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="acoes-fim">
+          <button className="btn" onClick={onReiniciar}>Jogar de novo</button>
+          {CONFIG.rankingAtivo && <button className="btn sec" onClick={onRanking}>Ver ranking</button>}
+        </div>
+      </div>
+    );
+  }
+
+  function Ranking({ meu, onVoltar }) {
+    const [jogadas, setJogadas] = useState(lerJogadas);
+    const [aba, setAba] = useState("escolas");
+    const [codigo, setCodigo] = useState("");
+    const [msg, setMsg] = useState("");
+    const [verTodos, setVerTodos] = useState(false);
+    const [semSalvar] = useState(() => !armazenamentoOk());
+    const { alunos, escolas } = classificar(jogadas);
+    const porMedia = CONFIG.criterioEscola === "media";
+    const medalha = k => ["🥇", "🥈", "🥉"][k] || `${k + 1}º`;
+
+    function admin(acao) { if (pedirPin()) acao(); else setMsg("Senha incorreta."); }
+    function excluirAluno(a) {
+      if (!pedirPin()) { setMsg("Senha incorreta. Nada foi excluído."); return; }
+      const n = jogadas.filter(j => chaveAluno(j) === chaveAluno(a)).length;
+      if (!window.confirm(`Excluir o aluno "${a.nome}" (${a.escola}) e ${n === 1 ? "sua jogada" : `suas ${n} jogadas`}?`)) return;
+      const restantes = jogadas.filter(j => chaveAluno(j) !== chaveAluno(a));
+      salvarJogadas(restantes); setJogadas(restantes); setMsg(`Aluno "${a.nome}" excluído.`);
+    }
+    function excluirEscola(e) {
+      if (!pedirPin()) { setMsg("Senha incorreta. Nada foi excluído."); return; }
+      if (!window.confirm(`Excluir a escola "${e.nome}" e os registros de ${e.alunos} ${e.alunos === 1 ? "aluno" : "alunos"}?`)) return;
+      const restantes = jogadas.filter(j => norm(j.escola) !== norm(e.nome));
+      salvarJogadas(restantes); setJogadas(restantes); setMsg(`Escola "${e.nome}" excluída.`);
+    }
+    function gerarCodigo() {
+      setCodigo(btoa(unescape(encodeURIComponent(JSON.stringify(jogadas)))));
+      setMsg("Código gerado. Copie o texto da caixa e cole em outro computador com o botão Importar código.");
+    }
+    function importar() {
+      try {
+        const lista = JSON.parse(decodeURIComponent(escape(atob(codigo.trim()))));
+        const ids = new Set(jogadas.map(j => j.id));
+        const novas = lista.filter(j => j && j.id && !ids.has(j.id) && typeof j.pontos === "number" && j.nome && j.escola);
+        const todas = [...jogadas, ...novas];
+        salvarJogadas(todas); setJogadas(todas); setCodigo("");
+        setMsg(`${novas.length} jogadas novas importadas.`);
+      } catch (e) { setMsg("Código inválido. Cole o código completo."); }
+    }
+    function baixarCsv() {
+      const cel = v => `"${String(v).replace(/"/g, '""')}"`;
+      const linhas = ["Posição,Escola,Aluno,Pontos"].concat(alunos.map((a, k) => [k + 1, a.escola, a.nome, a.pontos].map(cel).join(",")));
+      const blob = new Blob(["\uFEFF" + linhas.join("\n")], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob), a = document.createElement("a");
+      a.href = url; a.download = "ranking-quiz.csv"; a.click(); URL.revokeObjectURL(url);
+    }
+    function apagar() {
+      if (window.confirm("Apagar TODO o ranking deste computador?")) { salvarJogadas([]); setJogadas([]); setMsg("Ranking apagado."); }
+    }
+
+    const limite = verTodos ? 9999 : 10;
+    const itens = aba === "escolas"
+      ? escolas.slice(0, limite).map(e => ({
+          id: e.nome, eu: meu && norm(e.nome) === norm(meu.escola), titulo: e.nome,
+          sub: `${e.alunos} ${e.alunos === 1 ? "aluno" : "alunos"}, média ${e.media} pts`,
+          pts: porMedia ? e.media : e.total, excluir: () => excluirEscola(e) }))
+      : alunos.slice(0, limite).map(a => ({
+          id: a.id, eu: meu && chaveAluno(a) === chaveAluno(meu), titulo: a.nome, sub: a.escola,
+          pts: a.pontos, excluir: () => excluirAluno(a) }));
+
+    return (
+      <div className="cartao">
+        <h1><span className="marca">{CONFIG.titulo}</span></h1>
+        <h2>Ranking de escolas e alunos</h2>
+        {semSalvar && <p className="aviso">Este ambiente bloqueia o salvamento permanente. O ranking resiste a atualizar a página, mas some ao fechar a aba. Para salvar de verdade, abra o arquivo direto no Chrome, Edge ou Firefox.</p>}
+        {escolas.length > 0 && <div className="campeao">👑 {escolas[0].nome} lidera com {porMedia ? escolas[0].media : escolas[0].total} pts</div>}
+        <button className="btn" style={{ marginBottom: 16 }} onClick={onVoltar}>Jogar agora</button>
+        <div className="abas">
+          <button className={"aba" + (aba === "escolas" ? " on" : "")} onClick={() => setAba("escolas")}>Escolas</button>
+          <button className={"aba" + (aba === "alunos" ? " on" : "")} onClick={() => setAba("alunos")}>Alunos</button>
+        </div>
+        {itens.length === 0
+          ? <p className="suave">Ninguém jogou ainda. Seja o primeiro!</p>
+          : <ol className="placar-lista">
+              {itens.map((it, k) => (
+                <li key={it.id} className={it.eu ? "eu" : ""}>
+                  <span>{medalha(k)} {it.titulo}<small>{it.sub}</small></span>
+                  <span className="dir">
+                    <strong>{it.pts} pts</strong>
+                    <button className="excluir" onClick={it.excluir} title="Excluir (pede a senha)" aria-label={`Excluir ${it.titulo}`}>🗑</button>
+                  </span>
+                </li>
+              ))}
+            </ol>}
+        {(aba === "escolas" ? escolas.length : alunos.length) > 10 && (
+          <button className="link" onClick={() => setVerTodos(v => !v)}>{verTodos ? "Mostrar só o top 10" : "Ver todos os registros"}</button>
+        )}
+        {msg && <p className="aviso">{msg}</p>}
+        <p className="suave" style={{ fontSize: ".9rem" }}>
+          {aba === "escolas" ? (porMedia ? "As escolas são ordenadas pela média de pontos dos alunos." : "A pontuação da escola é a soma da melhor nota de cada aluno.") : "Cada aluno conta com a melhor pontuação."}
+        </p>
+        <details className="prof">
+          <summary>Área do professor</summary>
+          <div className="acoes-fim">
+            <button className="mini" onClick={() => admin(gerarCodigo)}>Gerar código</button>
+            <button className="mini" onClick={() => admin(importar)}>Importar código</button>
+            <button className="mini" onClick={() => admin(baixarCsv)}>Baixar CSV</button>
+            <button className="mini" onClick={() => admin(apagar)}>Apagar tudo</button>
+          </div>
+          <textarea rows={3} value={codigo} onChange={e => setCodigo(e.target.value)} placeholder="Para juntar rankings de vários computadores: gere o código em um, cole aqui em outro e clique em Importar código." />
+        </details>
+      </div>
+    );
+  }
+
+  function App() {
+    const [tela, setTela] = useState("ranking");
+    const [partida, setPartida] = useState([]);
+    const [log, setLog] = useState([]);
+    const [meu, setMeu] = useState(null);
+    const [mudo, setMudo] = useState(false);
+
+    function comecar(nome, escola) { setMeu({ nome, escola }); setPartida(prepararPartida()); setTela(CONFIG.animacaoSorteio ? "sorteio" : "quiz"); }
+    function finalizar(l) { setLog(l); setTela("resultado"); }
+    function alternarSom() { audio.mudo = !audio.mudo; setMudo(audio.mudo); }
+
+    let conteudo;
+    if (tela === "sorteio") conteudo = <Sorteio partida={partida} onIniciar={() => setTela("quiz")} />;
+    else if (tela === "quiz") conteudo = <Pergunta partida={partida} onFinalizar={finalizar} />;
+    else if (tela === "resultado") conteudo = <Resultado partida={partida} log={log} nome={meu.nome} escola={meu.escola} onReiniciar={() => setTela("inicio")} onRanking={() => setTela("ranking")} />;
+    else if (tela === "ranking") conteudo = <Ranking meu={meu} onVoltar={() => setTela("inicio")} />;
+    else conteudo = <Inicio onComecar={comecar} onRanking={() => setTela("ranking")} />;
+
+    return (
+      <>
+        {CONFIG.somAtivo && <button className="som" onClick={alternarSom} aria-label={mudo ? "Ligar som" : "Desligar som"}>{mudo ? "🔇" : "🔊"}</button>}
+        {conteudo}
+      </>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
