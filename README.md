@@ -102,7 +102,7 @@ Procure por `CONFIGURAÇÕES DO PROFESSOR` (Ctrl + F). Altere os valores, salve 
 
 ### Adicionar ou trocar perguntas
 
-As perguntas ficam logo abaixo, na lista `PERGUNTAS` (hoje são 20: 8 de Lógica e 12 de História da Informática). Copie o formato de uma pergunta existente:
+As perguntas ficam logo abaixo, na lista `PERGUNTAS`. Hoje são **80: 40 de Lógica e 40 de História da Informática**. Em cada partida, o quiz sorteia só 4 delas (2 de cada tema). Copie o formato de uma pergunta existente:
 
 ```js
 {
@@ -115,6 +115,12 @@ As perguntas ficam logo abaixo, na lista `PERGUNTAS` (hoje são 20: 8 de Lógica
 ```
 
 `correta` conta a partir de **0**: a primeira alternativa é `0`, a segunda é `1`, e assim por diante.
+
+As perguntas do bloco `BANCO AMPLIADO` usam um formato mais curto, com a mesma ordem de informações. Use `L(...)` para Lógica e `H(...)` para História da Informática:
+
+```js
+L("Texto da pergunta?", ["A", "B", "C", "D"], 2, "Explicação da resposta."),
+```
 
 ---
 
@@ -131,4 +137,3 @@ As perguntas ficam logo abaixo, na lista `PERGUNTAS` (hoje são 20: 8 de Lógica
 ## 7. Segurança
 
 A senha de administrador fica escrita dentro do arquivo. Ela evita exclusões acidentais, mas quem abrir o código-fonte consegue lê-la. Se os computadores forem dos alunos, considere guardar o arquivo do professor separado.
-# Quiz
